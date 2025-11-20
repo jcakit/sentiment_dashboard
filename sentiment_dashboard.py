@@ -853,9 +853,9 @@ def main():
     if selected_questions != st.session_state.selected_questions:
         st.session_state.selected_questions = selected_questions
     
-    # Acenta Filtreleri
+    # Acente Filtreleri
     st.sidebar.markdown("---")
-    st.sidebar.subheader("🏢 Acenta Filtreleri")
+    st.sidebar.subheader("🏢 Acente Filtreleri")
     
     # Bölge filtresi
     selected_bolgeler = []
@@ -863,6 +863,14 @@ def main():
         bolgeler = sorted(df["Acente Bölge"].dropna().unique())
         if 'selected_bolgeler_state' not in st.session_state:
             st.session_state.selected_bolgeler_state = bolgeler.copy()
+        
+        selected_bolgeler = st.sidebar.multiselect(
+            "Bölge", 
+            bolgeler, 
+            default=st.session_state.selected_bolgeler_state,
+            key="multiselect_bolge"
+        )
+        st.session_state.selected_bolgeler_state = selected_bolgeler
         
         col1, col2 = st.sidebar.columns(2)
         with col1:
@@ -873,14 +881,6 @@ def main():
             if st.button("🗑️ Temizle", key="bolge_clear", use_container_width=True):
                 st.session_state.selected_bolgeler_state = []
                 st.rerun()
-        
-        selected_bolgeler = st.sidebar.multiselect(
-            "Bölge", 
-            bolgeler, 
-            default=st.session_state.selected_bolgeler_state,
-            key="multiselect_bolge"
-        )
-        st.session_state.selected_bolgeler_state = selected_bolgeler
     
     # İl filtresi
     selected_iller = []
@@ -888,6 +888,14 @@ def main():
         iller = sorted(df["Acente İli"].dropna().unique())
         if 'selected_iller_state' not in st.session_state:
             st.session_state.selected_iller_state = iller.copy()
+        
+        selected_iller = st.sidebar.multiselect(
+            "İl", 
+            iller, 
+            default=st.session_state.selected_iller_state,
+            key="multiselect_il"
+        )
+        st.session_state.selected_iller_state = selected_iller
         
         col1, col2 = st.sidebar.columns(2)
         with col1:
@@ -898,14 +906,6 @@ def main():
             if st.button("🗑️ Temizle", key="il_clear", use_container_width=True):
                 st.session_state.selected_iller_state = []
                 st.rerun()
-        
-        selected_iller = st.sidebar.multiselect(
-            "İl", 
-            iller, 
-            default=st.session_state.selected_iller_state,
-            key="multiselect_il"
-        )
-        st.session_state.selected_iller_state = selected_iller
     
     # Segment filtresi
     selected_segmentler = []
@@ -913,6 +913,14 @@ def main():
         segmentler = sorted(df["enSegmenti"].dropna().unique())
         if 'selected_segmentler_state' not in st.session_state:
             st.session_state.selected_segmentler_state = segmentler.copy()
+        
+        selected_segmentler = st.sidebar.multiselect(
+            "Segment", 
+            segmentler, 
+            default=st.session_state.selected_segmentler_state,
+            key="multiselect_segment"
+        )
+        st.session_state.selected_segmentler_state = selected_segmentler
         
         col1, col2 = st.sidebar.columns(2)
         with col1:
@@ -923,14 +931,6 @@ def main():
             if st.button("🗑️ Temizle", key="segment_clear", use_container_width=True):
                 st.session_state.selected_segmentler_state = []
                 st.rerun()
-        
-        selected_segmentler = st.sidebar.multiselect(
-            "Segment", 
-            segmentler, 
-            default=st.session_state.selected_segmentler_state,
-            key="multiselect_segment"
-        )
-        st.session_state.selected_segmentler_state = selected_segmentler
     
     # Sınıf filtresi
     selected_siniflar = []
@@ -938,6 +938,14 @@ def main():
         siniflar = sorted(df["Sınıf"].dropna().unique())
         if 'selected_siniflar_state' not in st.session_state:
             st.session_state.selected_siniflar_state = siniflar.copy()
+        
+        selected_siniflar = st.sidebar.multiselect(
+            "Sınıf", 
+            siniflar, 
+            default=st.session_state.selected_siniflar_state,
+            key="multiselect_sinif"
+        )
+        st.session_state.selected_siniflar_state = selected_siniflar
         
         col1, col2 = st.sidebar.columns(2)
         with col1:
@@ -948,14 +956,6 @@ def main():
             if st.button("🗑️ Temizle", key="sinif_clear", use_container_width=True):
                 st.session_state.selected_siniflar_state = []
                 st.rerun()
-        
-        selected_siniflar = st.sidebar.multiselect(
-            "Sınıf", 
-            siniflar, 
-            default=st.session_state.selected_siniflar_state,
-            key="multiselect_sinif"
-        )
-        st.session_state.selected_siniflar_state = selected_siniflar
     
     # Grup filtresi
     selected_gruplar = []
@@ -963,6 +963,14 @@ def main():
         gruplar = sorted(df["Grup"].dropna().unique())
         if 'selected_gruplar_state' not in st.session_state:
             st.session_state.selected_gruplar_state = gruplar.copy()
+        
+        selected_gruplar = st.sidebar.multiselect(
+            "Grup", 
+            gruplar, 
+            default=st.session_state.selected_gruplar_state,
+            key="multiselect_grup"
+        )
+        st.session_state.selected_gruplar_state = selected_gruplar
         
         col1, col2 = st.sidebar.columns(2)
         with col1:
@@ -973,14 +981,6 @@ def main():
             if st.button("🗑️ Temizle", key="grup_clear", use_container_width=True):
                 st.session_state.selected_gruplar_state = []
                 st.rerun()
-        
-        selected_gruplar = st.sidebar.multiselect(
-            "Grup", 
-            gruplar, 
-            default=st.session_state.selected_gruplar_state,
-            key="multiselect_grup"
-        )
-        st.session_state.selected_gruplar_state = selected_gruplar
     
     # Harf Skoru filtresi
     selected_harfler = []
@@ -988,6 +988,14 @@ def main():
         harfler = sorted(df["Harf Skoru"].dropna().unique())
         if 'selected_harfler_state' not in st.session_state:
             st.session_state.selected_harfler_state = harfler.copy()
+        
+        selected_harfler = st.sidebar.multiselect(
+            "Harf Skoru", 
+            harfler, 
+            default=st.session_state.selected_harfler_state,
+            key="multiselect_harf"
+        )
+        st.session_state.selected_harfler_state = selected_harfler
         
         col1, col2 = st.sidebar.columns(2)
         with col1:
@@ -998,14 +1006,6 @@ def main():
             if st.button("🗑️ Temizle", key="harf_clear", use_container_width=True):
                 st.session_state.selected_harfler_state = []
                 st.rerun()
-        
-        selected_harfler = st.sidebar.multiselect(
-            "Harf Skoru", 
-            harfler, 
-            default=st.session_state.selected_harfler_state,
-            key="multiselect_harf"
-        )
-        st.session_state.selected_harfler_state = selected_harfler
     
     selected_date_range = None
     if "Acente Açılış Tarihi" in df.columns:
@@ -1087,18 +1087,21 @@ def main():
             **Genel Bakış Terimleri:**
             - **Toplam Katılımcı Sayısı**: Ankete katılan toplam kişi sayısı
             - **Açık Uçlu Sorulara Verilen Toplam Yanıt**: Açık uçlu sorulara verilen toplam yanıt sayısı
+            - **En az 1 Açık Uçlu Soruya Cevap Veren Kullanıcı**: En az bir açık uçlu soruya cevap vermiş unique kullanıcı sayısı
             - **Pozitif/Negatif**: Sentiment analizi sonucuna göre pozitif/negatif yanıt sayısı
             - **Topic**: Açık uçlu yanıtlardan yakalanan taksonomi kelimeleri
             """)
         
         # Ana metrikler
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         
         total_responses = len(df)
         
         if not open_long.empty:
             # Açık uçlu sorulara verilen toplam yanıt sayısı (unique kişi değil, toplam yanıt)
             total_with_open = len(open_long)
+            # En az 1 açık uçlu soruya cevap veren unique kullanıcı sayısı
+            users_with_open_response = open_long["response_index"].nunique() if "response_index" in open_long.columns else 0
             # Filter out empty sentiment for sentiment counts
             valid_sentiment = open_long[open_long["sentiment"] != "empty"]
             sentiment_counts = valid_sentiment["sentiment"].value_counts()
@@ -1109,6 +1112,7 @@ def main():
             total_sentiment = total_positive + total_negative + total_neutral + total_mixed
         else:
             total_with_open = 0
+            users_with_open_response = 0
             total_positive = total_negative = total_neutral = total_mixed = 0
             total_sentiment = 0
         
@@ -1117,8 +1121,10 @@ def main():
         with col2:
             st.metric("Açık Uçlu Sorulara Verilen Toplam Yanıt", total_with_open)
         with col3:
-            st.metric("Pozitif", total_positive)
+            st.metric("En az 1 Açık Uçlu Soruya Cevap Veren Kullanıcı", users_with_open_response)
         with col4:
+            st.metric("Pozitif", total_positive)
+        with col5:
             st.metric("Negatif", total_negative)
         
         # Özet grafikler
@@ -2362,18 +2368,29 @@ def main():
             - **response_index**: Her yanıtın ana DataFrame'deki orijinal satır indeksi
             """)
         
+        # Hide download button in dataframes
+        st.markdown("""
+        <style>
+        .stDataFrame > div:first-child > div:first-child button[kind="secondaryIcon"],
+        .stDataFrame > div:first-child > div:first-child button[title*="Download"],
+        .stDataFrame > div:first-child > div:first-child button[aria-label*="Download"] {
+            display: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
         data_option = st.selectbox(
             "Gösterilecek Veri",
             options=["Ana DataFrame", "open_long", "free_long"]
         )
         
         if data_option == "Ana DataFrame":
-            st.dataframe(df, use_container_width=True, height=400)
+            st.dataframe(df, use_container_width=True, height=400, hide_index=True)
         elif data_option == "open_long":
             if not open_long.empty:
                 # Remove question_short, sentiment_raw, topics_raw columns
                 display_cols = [col for col in open_long.columns if col not in ["question_short", "sentiment_raw", "topics_raw"]]
-                st.dataframe(open_long[display_cols], use_container_width=True, height=400)
+                st.dataframe(open_long[display_cols], use_container_width=True, height=400, hide_index=True)
             else:
                 st.info("open_long verisi bulunamadı.")
         elif data_option == "free_long":
@@ -2391,7 +2408,7 @@ def main():
                 display_df = free_long[display_cols_free].copy()
                 if 'topic' in display_df.columns:
                     display_df = display_df.rename(columns={'topic': 'topics'})
-                st.dataframe(display_df, use_container_width=True, height=400)
+                st.dataframe(display_df, use_container_width=True, height=400, hide_index=True)
             else:
                 st.info("free_long verisi bulunamadı.")
 

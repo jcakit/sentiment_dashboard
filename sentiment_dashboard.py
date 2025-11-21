@@ -109,6 +109,32 @@ def sentiment_label_to_score(value: str) -> float:
         return np.nan
 
 
+def format_date_column_for_display(df: pd.DataFrame, col_name: str = "Acente Açılış Tarihi") -> pd.DataFrame:
+    """Format date column to dd/mm/yyyy format for display purposes.
+    
+    This function creates a copy of the dataframe and formats the date column
+    to dd/mm/yyyy format without time component.
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe
+    col_name : str
+        Name of the date column to format
+        
+    Returns:
+    --------
+    pd.DataFrame
+        Copy of dataframe with formatted date column
+    """
+    df_copy = df.copy()
+    if col_name in df_copy.columns:
+        # Convert to datetime, format as dd/mm/yyyy, replace NaN with empty string
+        df_copy[col_name] = pd.to_datetime(df_copy[col_name], errors="coerce").dt.strftime('%d/%m/%Y')
+        df_copy[col_name] = df_copy[col_name].replace('NaT', '').replace('nan', '')
+    return df_copy
+
+
 def extract_numeric_from_answer(value, max_valid=5, treat_ge_as_nan=True, allow_zero=False):
     """Extract numeric value from Likert scale or NPS answers.
     
@@ -1682,8 +1708,6 @@ def main():
                                         st.info("Negatif free topic verisi bulunamadı.")
                                 else:
                                     st.info("Negatif free topic verisi bulunamadı.")
-                            else:
-                                st.info("Negatif free topic verisi bulunamadı.")
                         else:
                             st.info("Negatif free topic verisi bulunamadı.")
                     else:
@@ -1782,6 +1806,7 @@ def main():
                         mapping = [
                             ("Acente Bölge", "Bölge"),
                             ("Acente İli", "İl"),
+                            ("Acente Açılış Tarihi", "Açılış Tarihi"),
                             ("enSegmenti", "Segment"),
                             ("Sınıf", "Sınıf"),
                             ("Grup", "Grup"),
@@ -1789,7 +1814,18 @@ def main():
                         ]
                         for col, label in mapping:
                             if col in row and pd.notna(row[col]) and str(row[col]).strip() != "":
-                                id_parts.append(f"{label}: {row[col]}")
+                                value = row[col]
+                                # Format date column if it's a date
+                                if col == "Acente Açılış Tarihi":
+                                    try:
+                                        date_val = pd.to_datetime(value, errors="coerce")
+                                        if pd.notna(date_val):
+                                            value = date_val.strftime('%d/%m/%Y')
+                                        else:
+                                            value = str(value)
+                                    except:
+                                        value = str(value)
+                                id_parts.append(f"{label}: {value}")
                         
                         if id_parts:
                             st.caption(base_caption + " | " + " | ".join(id_parts))
@@ -1846,6 +1882,7 @@ def main():
                         mapping = [
                             ("Acente Bölge", "Bölge"),
                             ("Acente İli", "İl"),
+                            ("Acente Açılış Tarihi", "Açılış Tarihi"),
                             ("enSegmenti", "Segment"),
                             ("Sınıf", "Sınıf"),
                             ("Grup", "Grup"),
@@ -1853,7 +1890,18 @@ def main():
                         ]
                         for col, label in mapping:
                             if col in row and pd.notna(row[col]) and str(row[col]).strip() != "":
-                                id_parts.append(f"{label}: {row[col]}")
+                                value = row[col]
+                                # Format date column if it's a date
+                                if col == "Acente Açılış Tarihi":
+                                    try:
+                                        date_val = pd.to_datetime(value, errors="coerce")
+                                        if pd.notna(date_val):
+                                            value = date_val.strftime('%d/%m/%Y')
+                                        else:
+                                            value = str(value)
+                                    except:
+                                        value = str(value)
+                                id_parts.append(f"{label}: {value}")
                         
                         if id_parts:
                             st.caption(base_caption + " | " + " | ".join(id_parts))
@@ -2127,6 +2175,9 @@ def main():
                 if col in df.columns and col not in comparison_df.columns:
                     comparison_df[col] = df[col]
             
+            # Format date column for display
+            comparison_df = format_date_column_for_display(comparison_df, "Acente Açılış Tarihi")
+            
             hover_cols = [c for c in id_cols_for_hover if c in comparison_df.columns]
             
             comparison_df = comparison_df.dropna(subset=[genel_likert_col, "OpenSentiment_Avg"])
@@ -2214,6 +2265,9 @@ def main():
                     for col in id_cols_for_hover:
                         if col in df.columns:
                             theme_df[col] = df[col].values
+                    
+                    # Format date column for display
+                    theme_df = format_date_column_for_display(theme_df, "Acente Açılış Tarihi")
                     
                     hover_cols = [c for c in id_cols_for_hover if c in theme_df.columns]
                     
@@ -2314,16 +2368,30 @@ def main():
                                 # Açık uçlu yanıtları ekle (varsa)
                                 open_long = df.attrs.get("open_long", pd.DataFrame())
                                 if not open_long.empty and "response_index" in open_long.columns and "response_index" in segment_data.columns:
-                                    # Her kullanıcı için açık uçlu yanıtları birleştir
+                                    # Her kullanıcı için açık uçlu yanıtları birleştir (duplicate'leri kaldırarak)
                                     text_summaries = []
                                     for resp_idx in segment_data["response_index"]:
                                         user_texts = open_long[open_long["response_index"] == resp_idx]
                                         if not user_texts.empty:
+                                            # Tüm text'leri al ve duplicate'leri kaldır (boş ve NaN değerleri de temizle)
                                             texts_list = user_texts["text"].dropna().tolist()
-                                            if texts_list:
-                                                text_summary = " | ".join([t[:100] + "..." if len(t) > 100 else t for t in texts_list[:3]])
-                                                if len(texts_list) > 3:
-                                                    text_summary += f" ... (+{len(texts_list) - 3} yanıt daha)"
+                                            # Boş string'leri ve "nan" string'lerini temizle
+                                            texts_list = [str(t).strip() for t in texts_list if str(t).strip() and str(t).strip().lower() != "nan"]
+                                            # Duplicate'leri kaldır (sırayı koruyarak)
+                                            seen = set()
+                                            unique_texts = []
+                                            for text in texts_list:
+                                                # Normalize edilmiş text'i kontrol et (büyük/küçük harf duyarsız)
+                                                text_normalized = text.lower().strip()
+                                                if text_normalized not in seen:
+                                                    seen.add(text_normalized)
+                                                    unique_texts.append(text)
+                                            
+                                            if unique_texts:
+                                                # İlk 3 unique text'i göster
+                                                text_summary = " | ".join([t[:100] + "..." if len(t) > 100 else t for t in unique_texts[:3]])
+                                                if len(unique_texts) > 3:
+                                                    text_summary += f" ... (+{len(unique_texts) - 3} yanıt daha)"
                                                 text_summaries.append(text_summary)
                                             else:
                                                 text_summaries.append("Yok")
@@ -2336,30 +2404,70 @@ def main():
                                 # Sadece mevcut kolonları göster
                                 final_display_cols = [c for c in display_cols if c in segment_data.columns]
                                 
-                                # İndirme için dataframe hazırla
+                                # CSV indirme butonu ekle
                                 if final_display_cols:
-                                    display_df = segment_data[final_display_cols].sort_values(by=likert_col, ascending=False).copy()
+                                    display_data = segment_data[final_display_cols].sort_values(by=likert_col, ascending=False)
                                 else:
-                                    display_df = segment_data[[likert_col, sentiment_col]].sort_values(by=likert_col, ascending=False).copy()
+                                    display_data = segment_data[[likert_col, sentiment_col]].sort_values(by=likert_col, ascending=False)
                                 
-                                # Tabloyu göster
-                                st.dataframe(
-                                    display_df,
-                                    use_container_width=True,
-                                    height=400,
-                                    hide_index=True
-                                )
+                                # Format date column for display
+                                display_data = format_date_column_for_display(display_data, "Acente Açılış Tarihi")
                                 
-                                # İndirme butonu
-                                csv_data = display_df.to_csv(index=False, encoding='utf-8-sig')
-                                file_name = f"{selected_segment.replace(' ', '_')}_detayli_liste.csv"
-                                st.download_button(
-                                    label="📥 Tabloyu CSV Olarak İndir",
-                                    data=csv_data,
-                                    file_name=file_name,
-                                    mime="text/csv",
-                                    key=f"download_segment_{selected_segment}_{selected_theme}"
-                                )
+                                # Segmentasyon Analizi tablosunda download butonunu göster
+                                # Streamlit'in varsayılan CSV export'u UTF-8 kullanır (Türkçe karakterler desteklenir)
+                                # Excel'de Türkçe karakter sorunu yaşanırsa, CSV'yi açarken encoding'i UTF-8 olarak ayarlayın
+                                # CSS override ile bu tablo için download butonu her zaman görünür kalacak
+                                # Bu CSS Ham Veri tabındaki gizleme CSS'inden sonra yüklenir ve daha yüksek önceliğe sahiptir
+                                st.markdown("""
+                                <style>
+                                /* Segmentasyon Analizi tablosundaki dataframe download butonunu güçlü override ile göster */
+                                /* Ham Veri tabı dışındaki tüm tablarda download butonunu göster */
+                                div[data-testid="stTabs"] > div:last-child > div[role="tabpanel"]:not(:has(h2:contains("📋 Ham Veri"))) .stDataFrame > div:first-child > div:first-child button[kind="secondaryIcon"],
+                                div[data-testid="stTabs"] > div:last-child > div[role="tabpanel"]:not(:has(h2:contains("📋 Ham Veri Görüntüleme"))) .stDataFrame > div:first-child > div:first-child button[title*="Download"],
+                                div[data-testid="stTabs"] > div:last-child > div[role="tabpanel"]:not(:has(h2:contains("📋 Ham Veri Görüntüleme"))) .stDataFrame > div:first-child > div:first-child button[aria-label*="Download"],
+                                /* Segmentasyon Analizi tablosu için spesifik override */
+                                h3:contains("Kullanıcı Listesi") ~ div .stDataFrame > div:first-child > div:first-child button[kind="secondaryIcon"],
+                                /* Genel override: Ham Veri tabı dışındaki tüm dataframe'ler */
+                                .stDataFrame:not(:has(h2:contains("📋 Ham Veri"))) > div:first-child > div:first-child button[kind="secondaryIcon"] {
+                                    display: inline-flex !important;
+                                    visibility: visible !important;
+                                    opacity: 1 !important;
+                                }
+                                </style>
+                                <script>
+                                // JavaScript ile de download butonunu göstermeyi garantile
+                                setTimeout(function() {
+                                    const allDataframes = document.querySelectorAll('.stDataFrame');
+                                    allDataframes.forEach(function(df) {
+                                        // Ham Veri tabı içinde değilse
+                                        const hamVeriTab = df.closest('div[role="tabpanel"]');
+                                        if (hamVeriTab && !hamVeriTab.textContent.includes('📋 Ham Veri')) {
+                                            const downloadBtn = df.querySelector('button[kind="secondaryIcon"]');
+                                            if (downloadBtn) {
+                                                downloadBtn.style.display = 'inline-flex';
+                                                downloadBtn.style.visibility = 'visible';
+                                                downloadBtn.style.opacity = '1';
+                                            }
+                                        }
+                                    });
+                                }, 1000);
+                                </script>
+                                """, unsafe_allow_html=True)
+                                
+                                if final_display_cols:
+                                    st.dataframe(
+                                        display_data,
+                                        use_container_width=True,
+                                        height=400,
+                                        hide_index=True
+                                    )
+                                else:
+                                    st.dataframe(
+                                        display_data,
+                                        use_container_width=True,
+                                        height=400,
+                                        hide_index=True
+                                    )
                     else:
                         st.info("Tematik karşılaştırma için yeterli veri bulunamadı.")
     
@@ -2472,12 +2580,15 @@ def main():
             - **response_index**: Her yanıtın ana DataFrame'deki orijinal satır indeksi
             """)
         
-        # Hide download button in dataframes
+        # Ham Veri tabındaki dataframe'lerin download butonlarını gizle
+        # CSS sadece "Ham Veri Görüntüleme" başlığından sonraki elementlere uygulanacak
         st.markdown("""
         <style>
-        .stDataFrame > div:first-child > div:first-child button[kind="secondaryIcon"],
-        .stDataFrame > div:first-child > div:first-child button[title*="Download"],
-        .stDataFrame > div:first-child > div:first-child button[aria-label*="Download"] {
+        /* Ham Veri tabı başlığından sonraki dataframe download butonlarını gizle */
+        /* Bu CSS sadece Ham Veri tabı içinde uygulanır */
+        h2:contains("📋 Ham Veri") ~ div .stDataFrame > div:first-child > div:first-child button[kind="secondaryIcon"],
+        h2:contains("📋 Ham Veri Görüntüleme") ~ div .stDataFrame > div:first-child > div:first-child button[title*="Download"],
+        h2:contains("📋 Ham Veri Görüntüleme") ~ div .stDataFrame > div:first-child > div:first-child button[aria-label*="Download"] {
             display: none !important;
         }
         </style>
@@ -2489,12 +2600,17 @@ def main():
         )
         
         if data_option == "Ana DataFrame":
-            st.dataframe(df, use_container_width=True, height=400, hide_index=True)
+            # Format date column for display
+            df_display = format_date_column_for_display(df, "Acente Açılış Tarihi")
+            st.dataframe(df_display, use_container_width=True, height=400, hide_index=True)
         elif data_option == "open_long":
             if not open_long.empty:
                 # Remove question_short, sentiment_raw, topics_raw columns
                 display_cols = [col for col in open_long.columns if col not in ["question_short", "sentiment_raw", "topics_raw"]]
-                st.dataframe(open_long[display_cols], use_container_width=True, height=400, hide_index=True)
+                display_df = open_long[display_cols].copy()
+                # Format date column for display
+                display_df = format_date_column_for_display(display_df, "Acente Açılış Tarihi")
+                st.dataframe(display_df, use_container_width=True, height=400, hide_index=True)
             else:
                 st.info("open_long verisi bulunamadı.")
         elif data_option == "free_long":
@@ -2512,6 +2628,8 @@ def main():
                 display_df = free_long[display_cols_free].copy()
                 if 'topic' in display_df.columns:
                     display_df = display_df.rename(columns={'topic': 'topics'})
+                # Format date column for display
+                display_df = format_date_column_for_display(display_df, "Acente Açılış Tarihi")
                 st.dataframe(display_df, use_container_width=True, height=400, hide_index=True)
             else:
                 st.info("free_long verisi bulunamadı.")

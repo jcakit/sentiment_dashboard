@@ -2088,7 +2088,7 @@ def main():
             - **Uyumlu Pozitif**: Hem Likert hem sentiment skorları yüksek olanlar
             - **Kibar ama Mutsuz**: Likert skoru yüksek ama sentiment skoru düşük olanlar
             - **Açık Risk**: Hem Likert hem sentiment skorları düşük olanlar
-            - **Potansiyel**: Likert skoru düşük ama sentiment skoru yüksek olanlar
+            - **İyileştirme Potansiyeli**: Likert skoru düşük ama sentiment skoru yüksek olanlar (kapalı uçlu sorularda düşük puan vermiş, açık uçlu sorularda pozitif yanıt vermişler)
             """)
         
         # Global karşılaştırma
@@ -2194,10 +2194,13 @@ def main():
                     st.warning(f"Gerekli kolonlar bulunamadı ({likert_col}, {sentiment_col}).")
                 else:
                     theme_df = df[[likert_col, sentiment_col]].copy()
+                    # response_index'i ekle (açık uçlu yanıtlar için gerekli)
+                    theme_df = theme_df.reset_index().rename(columns={"index": "response_index"})
+                    
                     if "AgentName" in df.columns:
-                        theme_df["AgentName"] = df["AgentName"]
+                        theme_df["AgentName"] = df["AgentName"].values
                     elif "InviteeFullName" in df.columns:
-                        theme_df["AgentName"] = df["InviteeFullName"]
+                        theme_df["AgentName"] = df["InviteeFullName"].values
                     else:
                         theme_df["AgentName"] = "Bilinmiyor"
                     
@@ -2209,8 +2212,8 @@ def main():
                         "enSegmenti", "Sınıf", "Grup", "Harf Skoru",
                     ]
                     for col in id_cols_for_hover:
-                        if col in df.columns and col not in theme_df.columns:
-                            theme_df[col] = df[col]
+                        if col in df.columns:
+                            theme_df[col] = df[col].values
                     
                     hover_cols = [c for c in id_cols_for_hover if c in theme_df.columns]
                     
@@ -2252,10 +2255,101 @@ def main():
                         theme_df.loc[
                             (theme_df[likert_col] < likert_threshold) & (theme_df[sentiment_col] >= sentiment_threshold),
                             "Segment"
-                        ] = "Potansiyel"
+                        ] = "İyileştirme Potansiyeli"
                         
                         segment_counts = theme_df["Segment"].value_counts()
-                        st.dataframe(segment_counts.reset_index().rename(columns={"index": "Segment", "Segment": "Sayı"}), use_container_width=True)
+                        segment_df_display = segment_counts.reset_index().rename(columns={"index": "Segment", "Segment": "Sayı"})
+                        st.dataframe(segment_df_display, use_container_width=True)
+                        
+                        # Segment detayları için seçim
+                        available_segments = segment_counts.index.tolist()
+                        if available_segments:
+                            selected_segment = st.selectbox(
+                                "Detaylarını görmek istediğiniz segmenti seçin:",
+                                options=available_segments,
+                                key=f"segment_select_{selected_theme}"
+                            )
+                            
+                            if selected_segment:
+                                # Seçilen segmentin detaylarını göster
+                                segment_data = theme_df[theme_df["Segment"] == selected_segment].copy()
+                                
+                                st.markdown("---")
+                                st.subheader(f"📊 {selected_segment} - Detaylar")
+                                
+                                # Özet istatistikler
+                                col1, col2, col3, col4 = st.columns(4)
+                                with col1:
+                                    st.metric("Toplam Kullanıcı", len(segment_data))
+                                with col2:
+                                    avg_likert = segment_data[likert_col].mean()
+                                    st.metric("Ortalama Likert Skoru", f"{avg_likert:.2f}")
+                                with col3:
+                                    avg_sentiment = segment_data[sentiment_col].mean()
+                                    st.metric("Ortalama Sentiment Skoru", f"{avg_sentiment:.3f}")
+                                with col4:
+                                    st.metric("Segment Oranı", f"{(len(segment_data) / len(theme_df) * 100):.1f}%")
+                                
+                                # Detaylı veri tablosu
+                                st.subheader(f"📋 {selected_segment} - Kullanıcı Listesi")
+                                
+                                # Gösterilecek kolonları belirle
+                                display_cols = [likert_col, sentiment_col]
+                                if "AgentName" in segment_data.columns:
+                                    display_cols.insert(0, "AgentName")
+                                elif "InviteeFullName" in segment_data.columns:
+                                    display_cols.insert(0, "InviteeFullName")
+                                
+                                # ID kolonlarını ekle
+                                id_cols_for_display = [
+                                    "InviteeFullName", "AgentName",
+                                    "Acente Bölge", "Acente İli",
+                                    "Acente Açılış Tarihi",
+                                    "enSegmenti", "Sınıf", "Grup", "Harf Skoru",
+                                ]
+                                for col in id_cols_for_display:
+                                    if col in df.columns and col not in display_cols:
+                                        display_cols.append(col)
+                                
+                                # Açık uçlu yanıtları ekle (varsa)
+                                open_long = df.attrs.get("open_long", pd.DataFrame())
+                                if not open_long.empty and "response_index" in open_long.columns and "response_index" in segment_data.columns:
+                                    # Her kullanıcı için açık uçlu yanıtları birleştir
+                                    text_summaries = []
+                                    for resp_idx in segment_data["response_index"]:
+                                        user_texts = open_long[open_long["response_index"] == resp_idx]
+                                        if not user_texts.empty:
+                                            texts_list = user_texts["text"].dropna().tolist()
+                                            if texts_list:
+                                                text_summary = " | ".join([t[:100] + "..." if len(t) > 100 else t for t in texts_list[:3]])
+                                                if len(texts_list) > 3:
+                                                    text_summary += f" ... (+{len(texts_list) - 3} yanıt daha)"
+                                                text_summaries.append(text_summary)
+                                            else:
+                                                text_summaries.append("Yok")
+                                        else:
+                                            text_summaries.append("Yok")
+                                    
+                                    segment_data["Açık Uçlu Yanıtlar (Özet)"] = text_summaries
+                                    display_cols.append("Açık Uçlu Yanıtlar (Özet)")
+                                
+                                # Sadece mevcut kolonları göster
+                                final_display_cols = [c for c in display_cols if c in segment_data.columns]
+                                
+                                if final_display_cols:
+                                    st.dataframe(
+                                        segment_data[final_display_cols].sort_values(by=likert_col, ascending=False),
+                                        use_container_width=True,
+                                        height=400,
+                                        hide_index=True
+                                    )
+                                else:
+                                    st.dataframe(
+                                        segment_data[[likert_col, sentiment_col]].sort_values(by=likert_col, ascending=False),
+                                        use_container_width=True,
+                                        height=400,
+                                        hide_index=True
+                                    )
                     else:
                         st.info("Tematik karşılaştırma için yeterli veri bulunamadı.")
     

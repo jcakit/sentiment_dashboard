@@ -2336,20 +2336,30 @@ def main():
                                 # Sadece mevcut kolonları göster
                                 final_display_cols = [c for c in display_cols if c in segment_data.columns]
                                 
+                                # İndirme için dataframe hazırla
                                 if final_display_cols:
-                                    st.dataframe(
-                                        segment_data[final_display_cols].sort_values(by=likert_col, ascending=False),
-                                        use_container_width=True,
-                                        height=400,
-                                        hide_index=True
-                                    )
+                                    display_df = segment_data[final_display_cols].sort_values(by=likert_col, ascending=False).copy()
                                 else:
-                                    st.dataframe(
-                                        segment_data[[likert_col, sentiment_col]].sort_values(by=likert_col, ascending=False),
-                                        use_container_width=True,
-                                        height=400,
-                                        hide_index=True
-                                    )
+                                    display_df = segment_data[[likert_col, sentiment_col]].sort_values(by=likert_col, ascending=False).copy()
+                                
+                                # Tabloyu göster
+                                st.dataframe(
+                                    display_df,
+                                    use_container_width=True,
+                                    height=400,
+                                    hide_index=True
+                                )
+                                
+                                # İndirme butonu
+                                csv_data = display_df.to_csv(index=False, encoding='utf-8-sig')
+                                file_name = f"{selected_segment.replace(' ', '_')}_detayli_liste.csv"
+                                st.download_button(
+                                    label="📥 Tabloyu CSV Olarak İndir",
+                                    data=csv_data,
+                                    file_name=file_name,
+                                    mime="text/csv",
+                                    key=f"download_segment_{selected_segment}_{selected_theme}"
+                                )
                     else:
                         st.info("Tematik karşılaştırma için yeterli veri bulunamadı.")
     
